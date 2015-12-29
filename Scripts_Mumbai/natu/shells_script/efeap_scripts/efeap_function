@@ -1,0 +1,361 @@
+#!/bin/bash
+#Function decleration
+source /etc/profile
+
+
+fun_status()
+{
+	 echo -e "\n"  
+         echo " ====================================="    
+         echo " Checking "$1" Status in $(hostname| cut -d"-" -f3). . . "
+         echo " ====================================="    
+	[[ $(/etc/init.d/"$1" status | grep running) ]] && echo -e " "$1" is running in $(hostname| cut -d"-" -f3) server" && exit || echo -e "err_"$1"" > /tmp/error.txt
+}
+
+fun_start()
+{
+	 echo -e "\n"  
+         echo " ===================================="   
+         echo " Starting "$1" Service in $(hostname| cut -d"-" -f3). . ."
+         echo " ===================================="   
+	if [ "$1" == "cman" ] 
+	then
+        [[ $(/etc/init.d/"$1" status | grep running) ]] && echo -e " "$1" is already running in $(hostname)...\n " || echo -e " Starting "$1" Service in "$(hostname| cut -d"-" -f3)" $(/etc/init.d/cman start 1>/dev/null 2>/dev/null &) "
+	else
+	
+        [[ $(/etc/init.d/"$1" status | grep running) ]] && echo -e " "$1" is already running in $(hostname)...\n " || echo -e " Starting "$1" Service in "$(hostname| cut -d"-" -f3)" $(/etc/init.d/"$1" start ) "
+	fi
+
+
+}
+
+fun_stop()
+{
+	 echo -e "\n"  
+         echo " ======================================"    
+         echo " Stopping "$1" Service in $(hostname| cut -d"-" -f3). . ."
+         echo " ======================================"   
+
+        [[ $(/etc/init.d/"$1" status | grep running) ]] && echo -e "  "$1" is running in $(hostname)...\n  Stopping "$1" Service in $(hostname)...\n\n " && echo $(/etc/init.d/$1 stop)
+        sleep 3
+        [[ $(/etc/init.d/"$1" status | grep stopped) ]] && echo -e "  "$1" stopped sucessfully in $(hostname)... \n" || echo -e " Unable to stop "$1" in $(hostname)... \n\n " 
+
+}
+
+
+case $1 in
+
+cman_status)
+
+	 if [ $(hostname | cut -d"-" -f3) != "DBSA" -a  $(hostname | cut -d"-" -f3) != "DBSB" ]
+	 then
+		exit 0
+ 	 fi
+	 fun_status cman 
+       ;;  
+
+rgman_status)
+        
+         if [ $(hostname | cut -d"-" -f3) != "DBSA" -a  $(hostname | cut -d"-" -f3) != "DBSB" ]
+	 then
+                exit 0  
+	 fi
+          fun_status rgmanager	
+	;;
+
+rgman_stop)
+         
+	if [ $(hostname | cut -d"-" -f3) != "DBSA" -a  $(hostname | cut -d"-" -f3) != "DBSB" ]
+	 then
+	         exit 0
+ 	 fi
+	 fun_stop rgmanager 
+	;;
+
+cman_stop)
+        
+	if [ $(hostname | cut -d"-" -f3) != "DBSA" -a  $(hostname | cut -d"-" -f3) != "DBSB" ]
+	 then
+	         exit 0
+ 	 fi
+	 fun_stop cman
+        ;;
+
+
+cman_start)
+        
+         if [ $(hostname | cut -d"-" -f3) != "DBSA" -a  $(hostname | cut -d"-" -f3) != "DBSB" ]
+	 then
+	         exit 0
+ 	 fi
+	 fun_status cman
+	 fun_start cman
+	 fun_status cman
+	;;
+
+
+rgman_start)
+        
+         if [ $(hostname | cut -d"-" -f3) != "DBSA" -a  $(hostname | cut -d"-" -f3) != "DBSB" ]
+	 then
+         	 echo 10 >/tmp/error.txt
+	         exit 0
+ 	 fi
+	 fun_start rgmanager
+       ;;
+
+
+rgman_predo)
+
+	[[ -e /var/lock/subsys/mysql ]] && rm -rf /var/lock/subsys/mysql
+	
+	[[ $(/etc/init.d/mysql status | grep not ) ]] && echo " Mysql status is ok"|| echo " Mysql running before starting cman" $(echo err_104 > /tmp/error.txt) 
+
+	[[ $(lvscan | grep /dev/vgdbmig/lvdbmig | grep ' inactive ') ]] && echo " LVM /dbmig is found OK " || echo " Found /dbmig lv is active "  $(echo err_104 > /tmp/error.txt)
+	
+	[[ $(lvscan | grep /dev/vgbinlog/lvbinlog | grep ' inactive ') ]] && echo " LVM /binlog is found OK " || echo " Found /binlog lv is active " $(echo err_104 > /tmp/error.txt)
+
+	[[ $(lvscan | grep /dev/vgdb/lvdb | grep ' inactive ') ]] && echo " LVM /db is found OK " || echo " Found /db lv is active " $(echo err_104 > /tmp/error.txt)
+
+
+	;;
+
+
+rgman_postdo)
+	echo "checking the LVM and Myql Service"	
+
+	[[ $(mount | grep /dev/mapper/vgbinlog-lvbinlog) ]] && echo " The /binlog lvm is mounted sucessfully on $(hostname | cut -d"-" -f3)" || echo err_105 > /tmp/error.txt 
+	
+	[[ $(mount | grep /dev/mapper/vgdb) ]] && echo " The /db lvm is mounted sucessfully $(hostname | cut -d"-" -f3) " || echo err_105 > /tmp/error.txt 
+
+        [[ $(/etc/init.d/mysql status | grep running ) ]] &&  echo " Mysql service is running sucessfully $(hostname | cut -d"-" -f3)"|| echo err_105 > /tmp/error.txt
+
+ 
+       ;;
+
+
+soa_check)
+
+	[[ $(ps aux | grep -v "grep" | grep mfds ) ]] && echo " MFDS Services are currently running " || $(echo mfds_err_106 >>/tmp/error.txt)
+
+	[[ $(ps aux | grep -v "grep" | grep  eslm ) ]] && echo " ESLM Services are currently running " || $(echo eslm_err_106 >>/tmp/error.txt)
+
+	[[ $(ps aux | grep -v "grep" | grep cassi) ]] && echo " Cassi Services are currently running " || $(echo cassi_err_106 >>/tmp/error.txt)
+
+	;;
+
+
+
+
+soa_start)
+
+if [ $(hostname | cut -d"-" -f3) != "APPA" -a  $(hostname | cut -d"-" -f3) != "APPB" ]
+         then
+                 echo 10 >/tmp/error.txt
+                 exit 0
+         fi
+
+id |grep "uid=501(feapadmin)"
+
+if [ "$?" = 1 ]
+then
+        echo "======================================================================" 
+        echo "               Execute script through feapadmin user only                   " 
+        echo "======================================================================"
+        exit
+else
+	chown -R feapadmin:feapadmin /opt/microfocus/cobol /var/aslmfsem /var/mfaslmf/ /var/mfcobol/	
+	echo "Starting ESLM "
+	echo " " 
+
+	sudo -i /opt/microfocus/cobol/bin/eslm	
+	sleep 2
+	ps axu |grep -v "grep" | grep eslm32
+	if [ $? -eq 0 ] 
+	then 
+		echo "============================================================================" 
+	        echo "                     ESLM Started Successfully in $(hostname)....              "
+        	echo "============================================================================"
+	else
+		echo "ERROR: ESLM not started sucessfully"
+		exit
+	fi
+
+	echo "Starting MFDS "	
+	echo "	"
+	sudo -i /opt/microfocus/cobol/bin/mfds &
+	sleep 2
+	ps aux |grep -v "grep"| grep mfds
+	if [  $? -eq 0 ]
+	then	
+		echo "============================================================================" 
+	        echo "                     MFDS started Successfully in $(hostname).......       " 
+        	echo "============================================================================" 
+	else
+		echo " ERROR: MFDS Not started sucessfully"
+		exit
+	fi
+	
+	echo " Starting cassi process"
+	echo " "
+	source /etc/profile
+	/opt/microfocus/cobol/bin/casstart
+	sleep 2
+ 	grep "XA" /var/mfcobol/es/ESDEMO/console.log
+	if [  $? -eq 0 ]
+        then
+                echo "============================================================================" 
+                echo "                     CASSI started Successfully in $(hostname)....         " 
+                echo "============================================================================" 
+        else
+                echo " ERROR: CASSI Not started sucessfully"
+                exit
+        fi
+	
+	
+fi
+
+;;
+	
+
+soa_stop)
+
+
+if [ $(hostname | cut -d"-" -f3) != "APPA" -a  $(hostname | cut -d"-" -f3) != "APPB" ]
+         then
+                 echo 10 >/tmp/error.txt
+                 exit 0
+         fi
+
+	id |grep "uid=501(feapadmin)"
+
+if [ "$?" = 1 ]
+then
+        echo "======================================================================" 
+        echo "               Execute script through feapadmin user only                   " 
+        echo "======================================================================"
+        exit
+else
+	
+        echo "======================================================================" 
+        echo "              Stopping SOA  in $(hostname)......                  " 
+        echo "======================================================================" 
+	
+	casstop /f
+	casstop /f
+	casstop /f
+	sleep 5
+	while (	true )
+	do
+	
+		pkill -9 cassi > /dev/null
+	        pkill -9 cassi > /dev/null
+		if [ $(ps aux | grep -v "grep" | grep cassi| wc -l) -eq 0 ]
+		then
+		      echo " CASSI process stopped sucessfully"	
+		      break
+		else
+			echo "Still  stopping cassi process"
+			pkill -9 cassi > /dev/null
+			sleep 5
+		fi		
+		
+			
+	done	
+		
+	cd /home/feapadmin/scripts/mfmem
+
+	echo "===========================================================================" 
+        echo "                     Purging shared memory in $(hostname) .....            " 
+        echo "===========================================================================" 
+	mfmempurge feapadmin
+	mfmempurge feapadmin
+	cd /var/mfcobol/es
+        rm -rvf ESDEMO
+
+        cd /home/feapadmin/scripts/mfmem
+		
+	echo "===========================================================================" 
+        echo "                     Shared memorey trashed in $(hostname).....            " 
+        echo "===========================================================================" 
+	mfmemtrash ESDEMO
+	sleep 3
+	mfmemtrash ESDEMO			
+	sleep 3
+   	ipcs -sm | grep "feapadmin" | wc	
+
+	sudo /usr/bin/pkill -9 mfds
+	while (true)
+	do		
+	if [ $(ps aux | grep -v "grep" | grep mfds| wc -l) -eq 0 ]
+                then
+                      echo " CASSI process stopped sucessfully" 
+                      break
+                else
+                        echo "Still  stopping MFDS "
+                        pkill -9 mfds > /dev/null
+                        sleep 5
+                fi      
+	done     	
+
+        echo "============================================================================" 
+        echo "                     MFDS Stopped in $(hostname)............              " 
+        echo "============================================================================" 
+        sleep 2
+	sudo /opt/microfocus/cobol/bin/eslmfgetpv k
+
+        echo "============================================================================" 
+        echo "                     ESLM Stopped in $(hostname)............              " 
+        echo "============================================================================" 
+
+        sleep 2
+			
+	sudo /opt/microfocus/cobol/bin/eslmfgetpv k                        
+	while (true)
+	do
+	
+	if [ $(ps aux | grep -v "grep" | grep eslm | wc -l) -eq 0 ]
+                then
+                      echo " ESLM stopped sucessfully" 
+                      break
+                else
+                        echo "Still  stopping ESLM"
+			sudo /opt/microfocus/cobol/bin/eslmfgetpv k                        
+			sudo /opt/microfocus/cobol/bin/eslmfgetpv k                        
+			sleep 5
+                fi
+	done
+
+        sleep 2
+	cd /home/feapadmin/scripts/MFSharedMemoryReset/
+	echo "Changing file permissions"
+	sudo /bin/chown -R feapadmin.feapadmin /opt/microfocus/ /var/mfcobol/ /var/aslmfsem /var/mfaslmf
+
+	./MFSharedMemoryReset.sh
+	sleep 2
+	./MFSharedMemoryReset.sh
+	sleep 2
+	./MFSharedMemoryReset.sh
+	sleep 2
+
+	./SharedMemoryDelete.sh
+	sleep 2
+	./SharedMemoryDelete.sh
+
+fi
+
+;;
+
+	
+
+
+
+esac   
+
+       
+
+
+
+
+
+

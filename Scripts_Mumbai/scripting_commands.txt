@@ -1,0 +1,3 @@
+[ -d logs ]|| echo "logs not present"    -   To check wether logs directory present , if not it will print "logs not present".
+
+

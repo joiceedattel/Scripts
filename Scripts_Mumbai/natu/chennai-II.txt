@@ -1,0 +1,7 @@
+10.66.250.131|10LICwebaroot
+10.66.250.133|10LICwebbroot
+10.66.250.141|10LICapparoot
+10.66.250.143|10LICappbroot
+10.66.250.162|10LICdbsaroot|10LICdbsbroot
+10.66.250.139|10LICdbsrroot
+10.66.250.145|10LICbackroot

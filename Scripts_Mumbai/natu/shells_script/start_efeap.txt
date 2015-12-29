@@ -1,0 +1,69 @@
+1.database
+2.app server
+3.web server
+
+
+
+Starting Cluster
+1.start cman on both server
+2.start rgmanager on dbsa
+3.once rgmanager started ,lvm and mysql started then need to start rgmanager in dbsb
+
+Stopping Cluster
+1.Need to confirm all application service are stopped .(show processlist from mysql)
+2.check the activer cluster node
+3.stop the rgmanager in passive node
+4.stop the rgmanager in active node
+5.stop the cman in both server parallely
+
+
+
+Starting APP Server
+
+(check the nfs partition is mounted)
+
+1.Check mfds,eslm,cassi already running
+2.Check the /tmp directory for files created by starting service by root
+3.start eslm
+4.start mfds & in backend
+5.start cassi through feapadmin
+
+Stopping APP Servers
+
+(check the nfs partition is mounted)
+1.stop cassi through feapadmin
+2.stop mfds
+3.stop eslm.
+
+
+Starting Glassfish
+(check the nfs partition is mounted)
+1.Check for /tmp for files created by starting in root
+2.Check services are already started if started  then stop and start
+3.start the glassfish domain in weba
+4.start the nodeagents in weba
+5.start the nodeagents in webb
+6.check the all the instances are started properely.
+
+
+
+
+for getting cluster status
+
+$(clustat | grep started | awk '{print $2}') === Z00-X000-DBSA
+
+$(clustat | grep started | awk '{print $2}' | awk -F'-' '{print $3}')   === DBSA
+
+/etc/init.d/cman status | grep running 
+echo $?
+if $? = 0
+then running
+else stopped
+
+
+
+
+
+
+
+

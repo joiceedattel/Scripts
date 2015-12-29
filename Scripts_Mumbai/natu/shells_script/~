@@ -1,0 +1,15 @@
+#!/bin/bash
+
+n=1
+for i in $(cat iplist.txt)
+do
+ip=$(echo $i | cut -d "." -f1-3)
+
+ipadd=$(echo "$ip.$n")
+echo $ipadd
+n=`expr $n+1`
+
+break
+done
+
+

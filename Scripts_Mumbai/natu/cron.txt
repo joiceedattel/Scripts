@@ -1,0 +1,1 @@
+01 * * * * /bin/sh /db1/INFRA/Natarajan/shells_script/dc_slowness.sh kanpur /db1/kanpur.txt
